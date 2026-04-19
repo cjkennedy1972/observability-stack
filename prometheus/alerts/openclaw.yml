@@ -1,0 +1,65 @@
+groups:
+  - name: openclaw
+    interval: 30s
+    rules:
+
+      - alert: OpenclawGatewayDown
+        expr: up{job="node_openclaw"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Openclaw gateway host is unreachable"
+
+      - alert: OpenclawHighTokenCost
+        expr: |
+          increase(openclaw_cost_usd_total[1h]) > 1.0
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "Openclaw token cost exceeding $1/hr"
+          description: "Estimated cost over the last hour: ${{ $value | humanize }}."
+
+      - alert: OpenclawSlowAgentTurns
+        expr: |
+          histogram_quantile(0.95,
+            rate(openclaw_run_duration_ms_bucket[5m])
+          ) > 60000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Openclaw agent turns are slow (p95 > 60s)"
+          description: "p95 agent turn duration is {{ $value | humanizeDuration }}."
+
+      - alert: HostHighCPU
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.host }}"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}."
+
+      - alert: HostHighMemory
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.host }}"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}."
+
+      - alert: HostDiskNearFull
+        expr: |
+          (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"} /
+                node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk near full on {{ $labels.host }}"
+          description: "Disk {{ $labels.mountpoint }} is {{ $value | humanize }}% full."

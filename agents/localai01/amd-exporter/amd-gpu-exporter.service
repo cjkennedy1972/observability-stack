@@ -1,0 +1,15 @@
+[Unit]
+Description=AMD GPU Prometheus Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=ckennedy
+ExecStart=/usr/bin/python3 /opt/observability-agent/amd-exporter/amd_gpu_exporter.py
+Environment=PORT=2021
+Environment=ROCM_SMI=/opt/rocm/bin/rocm-smi
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

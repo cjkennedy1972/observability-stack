@@ -1,0 +1,15 @@
+[Unit]
+Description=NVIDIA GPU Prometheus Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=ckennedy
+ExecStart=/usr/bin/python3 /opt/observability-agent/nvidia-exporter/nvidia_gpu_exporter.py
+Environment=PORT=9835
+Environment=NVIDIA_SMI=/usr/bin/nvidia-smi
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

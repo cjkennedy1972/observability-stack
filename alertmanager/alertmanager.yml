@@ -1,0 +1,27 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: [alertname, host]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: default
+
+  routes:
+    - matchers:
+        - severity = critical
+      receiver: default
+      continue: true
+
+receivers:
+  - name: default
+    # Add notification integrations here (e.g. discord, slack, pagerduty)
+    # See https://prometheus.io/docs/alerting/latest/configuration/
+
+inhibit_rules:
+  - source_matchers:
+      - severity = critical
+    target_matchers:
+      - severity = warning
+    equal: [host]

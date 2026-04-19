@@ -1,0 +1,49 @@
+services:
+
+  # ── Node Exporter ─────────────────────────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    command:
+      - --path.rootfs=/host
+      - --collector.systemd
+      - --collector.processes
+    volumes:
+      - /:/host:ro,rslave
+      - /run/systemd/private:/run/systemd/private:ro
+    pid: host
+    network_mode: host
+
+  # NOTE: AMD GPU exporter runs as amd-gpu-exporter.service (systemd, not Docker)
+  # because it needs direct access to the host's ROCm Python stack.
+  # Installed by deploy-agents.sh; exposes metrics at :2021/metrics
+
+  # ── Grafana Alloy — log shipping to Loki ─────────────────────────────────────
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    ports:
+      - "12345:12345"   # Alloy UI
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    environment:
+      LOKI_URL: "http://10.25.25.80:3100/loki/api/v1/push"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    network_mode: host
+
+  # ── LocalAI OTel sidecar override (adds OTLP env to existing container) ──────
+  # Run:  docker compose -f docker-compose.yml -f otel-override.yml up -d
+  # in the LocalAI directory to enable OTel tracing from LocalAI itself.
+
+volumes:
+  alloy_data:

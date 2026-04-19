@@ -1,0 +1,62 @@
+groups:
+  - name: gpu_nvidia
+    interval: 30s
+    rules:
+
+      - alert: NvidiaGPUHighTemperature
+        expr: nvidia_smi_temperature_gpu > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NVIDIA GPU temperature critical on {{ $labels.host }}"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.host }} is at {{ $value }}°C."
+
+      - alert: NvidiaGPUMemoryNearFull
+        expr: |
+          (nvidia_smi_memory_used_bytes / nvidia_smi_memory_total_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NVIDIA GPU memory near capacity on {{ $labels.host }}"
+          description: "GPU memory usage is {{ $value | humanize }}% on {{ $labels.host }}."
+
+      - alert: NvidiaGPUExporterDown
+        expr: up{job="gpu_localai02"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NVIDIA GPU exporter is down on localai02"
+
+  - name: gpu_amd
+    interval: 30s
+    rules:
+
+      - alert: AMDGPUHighTemperature
+        expr: amd_smi_temperature_celsius > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AMD GPU temperature critical on {{ $labels.host }}"
+          description: "GPU {{ $labels.gpu_id }} on {{ $labels.host }} is at {{ $value }}°C."
+
+      - alert: AMDGPUMemoryNearFull
+        expr: |
+          (amd_smi_vram_used_bytes / amd_smi_vram_total_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AMD GPU VRAM near capacity on {{ $labels.host }}"
+          description: "VRAM usage is {{ $value | humanize }}% on {{ $labels.host }}."
+
+      - alert: AMDGPUExporterDown
+        expr: up{job="gpu_localai01"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AMD GPU exporter is down on localai01"

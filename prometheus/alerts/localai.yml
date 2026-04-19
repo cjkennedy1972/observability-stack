@@ -1,0 +1,37 @@
+groups:
+  - name: localai
+    interval: 30s
+    rules:
+
+      - alert: LocalAIDown
+        expr: up{job=~"localai.*", job!~"node.*|gpu.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LocalAI instance {{ $labels.host }} is down"
+          description: "LocalAI on {{ $labels.host }} has not responded for over 1 minute."
+
+      - alert: LocalAIHighRequestLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(api_call_bucket{job=~"localai.*"}[5m])
+          ) > 30000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 request latency on {{ $labels.host }}"
+          description: "p95 latency is {{ $value | humanizeDuration }} on {{ $labels.host }}."
+
+      - alert: LocalAIHighErrorRate
+        expr: |
+          rate(api_call_count{job=~"localai.*", path!=""}[5m]) > 0
+          and
+          rate(api_call_count{job=~"localai.*", path!=""}[5m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated error rate on {{ $labels.host }}"
+          description: "LocalAI on {{ $labels.host }} has a high error rate."

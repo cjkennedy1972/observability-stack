@@ -1,0 +1,45 @@
+services:
+
+  # ── Node Exporter ─────────────────────────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    command:
+      - --path.rootfs=/host
+      - --collector.systemd
+      - --collector.processes
+    volumes:
+      - /:/host:ro,rslave
+      - /run/systemd/private:/run/systemd/private:ro
+    pid: host
+    network_mode: host
+
+  # NOTE: NVIDIA GPU exporter runs as nvidia-gpu-exporter.service (systemd, not Docker)
+  # because it only needs nvidia-smi which is already on the host.
+  # Installed by deploy-agents.sh; exposes metrics at :9835/metrics
+
+  # ── Grafana Alloy — log shipping to Loki ─────────────────────────────────────
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    ports:
+      - "12345:12345"
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    environment:
+      LOKI_URL: "http://10.25.25.80:3100/loki/api/v1/push"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    network_mode: host
+
+volumes:
+  alloy_data:
