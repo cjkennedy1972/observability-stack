@@ -21,6 +21,7 @@ OTLP_ENDPOINT = os.environ.get("OTLP_ENDPOINT", "http://10.25.25.80:4318")
 HOST_NAME     = os.environ.get("HOST_NAME",      "localai01")
 SERVICE_NAME  = os.environ.get("SERVICE_NAME",   f"localai-{HOST_NAME}")
 POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "15"))
+LOCALAI_API_KEY = os.environ.get("LOCALAI_API_KEY", "")
 
 # Cursor: ISO timestamp string of the last record we shipped
 _last_seen_ts: str = ""
@@ -172,7 +173,10 @@ def build_otlp_payload(spans: list) -> dict:
 def fetch_traces() -> list:
     url = f"{LOCALAI_URL}/api/backend-traces"
     try:
-        with urllib.request.urlopen(url, timeout=10) as r:
+        req = urllib.request.Request(url)
+        if LOCALAI_API_KEY:
+            req.add_header("Authorization", f"Bearer {LOCALAI_API_KEY}")
+        with urllib.request.urlopen(req, timeout=10) as r:
             return json.loads(r.read())
     except Exception as e:
         log.warning(f"Failed to fetch traces: {e}")
