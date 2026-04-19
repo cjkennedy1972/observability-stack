@@ -1,0 +1,18 @@
+[Unit]
+Description=LocalAI Backend Trace Shipper (localai01 → Tempo)
+After=network.target
+
+[Service]
+Type=simple
+User=ckennedy
+ExecStart=/usr/bin/python3 /opt/observability-agent/localai-trace-shipper/localai_trace_shipper.py
+Environment=LOCALAI_URL=http://localhost:8080
+Environment=OTLP_ENDPOINT=http://10.25.25.80:4318
+Environment=HOST_NAME=localai01
+Environment=SERVICE_NAME=localai-localai01
+Environment=POLL_INTERVAL=15
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

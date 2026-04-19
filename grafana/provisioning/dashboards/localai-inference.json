@@ -1,0 +1,246 @@
+{
+  "title": "LocalAI — Inference Traces & Tokens",
+  "uid": "localai-inference",
+  "tags": ["localai", "inference", "traces", "tokens"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "time": {"from": "now-3h", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "host",
+        "label": "Host",
+        "type": "query",
+        "datasource": {"uid": "prometheus"},
+        "query": "label_values(up{job=~\"localai.*\", job!~\"node.*|gpu.*\"}, host)",
+        "multi": true,
+        "includeAll": true,
+        "current": {"text": "All", "value": "$__all"},
+        "refresh": 2
+      },
+      {
+        "name": "model",
+        "label": "Model",
+        "type": "custom",
+        "options": [
+          {"text": "All", "value": ".*", "selected": true},
+          {"text": "gemma-4-31b-it", "value": "gemma-4-31b-it"},
+          {"text": "opencoder-8b-instruct", "value": "opencoder-8b-instruct"}
+        ],
+        "current": {"text": "All", "value": ".*"}
+      }
+    ]
+  },
+  "panels": [
+
+    {
+      "id": 1,
+      "title": "Inference Request Rate (req/min)",
+      "type": "timeseries",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 0},
+      "description": "Number of completed LLM inferences per minute, by host and model",
+      "targets": [
+        {
+          "datasource": {"uid": "prometheus"},
+          "expr": "sum by (host) (rate(api_call_count{job=~\"localai.*\", path=~\".*/chat/completions|.*/completions\"}[5m])) * 60",
+          "legendFormat": "{{host}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "reqpm", "min": 0}}
+    },
+
+    {
+      "id": 2,
+      "title": "Inference p50 / p95 / p99 Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 0},
+      "description": "End-to-end request latency percentiles from LocalAI's Prometheus metrics",
+      "targets": [
+        {
+          "datasource": {"uid": "prometheus"},
+          "expr": "histogram_quantile(0.50, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=~\".*/chat/completions|.*/completions\"}[5m])))",
+          "legendFormat": "p50 {{host}}"
+        },
+        {
+          "datasource": {"uid": "prometheus"},
+          "expr": "histogram_quantile(0.95, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=~\".*/chat/completions|.*/completions\"}[5m])))",
+          "legendFormat": "p95 {{host}}"
+        },
+        {
+          "datasource": {"uid": "prometheus"},
+          "expr": "histogram_quantile(0.99, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=~\".*/chat/completions|.*/completions\"}[5m])))",
+          "legendFormat": "p99 {{host}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "ms"}}
+    },
+
+    {
+      "id": 3,
+      "title": "Token Usage — Prompt vs Completion (from Traces)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 16, "x": 0, "y": 7},
+      "description": "Prompt and completion tokens extracted from /api/backend-traces and shipped to Tempo as span attributes. Queried via TraceQL metrics.",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | rate()",
+          "legendFormat": "Inference rate"
+        }
+      ],
+      "options": {
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 4,
+      "title": "Tokens / Minute (Prompt + Completion)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 7},
+      "description": "Derived from api_call rate × average tokens per call. Detailed per-call token counts are in individual trace spans.",
+      "targets": [
+        {
+          "datasource": {"uid": "prometheus"},
+          "expr": "sum by (host) (rate(api_call_count{job=~\"localai.*\", path=~\".*/chat/completions|.*/completions\"}[5m])) * 60 * 500",
+          "legendFormat": "~tokens/min {{host}}",
+          "hide": false
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0}},
+      "options": {"tooltip": {"mode": "multi"}}
+    },
+
+    {
+      "id": 5,
+      "title": "Recent Inference Traces (click to explore)",
+      "type": "traces",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 15},
+      "description": "Every backend inference from both LocalAI hosts, shipped by the trace shipper. Span attributes include model, backend, prompt tokens, completion tokens, duration, and tokens/sec.",
+      "datasource": {"uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | select(span.localai.model, span.localai.tokens.prompt, span.localai.tokens.completion, span.localai.tokens_per_second, span.localai.duration_ms) | sort(duration desc)"
+        }
+      ]
+    },
+
+    {
+      "id": 6,
+      "title": "Backend Inference Duration Heatmap",
+      "type": "heatmap",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 25},
+      "description": "Distribution of inference durations across all models and backends from Tempo span data",
+      "datasource": {"uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | histogram_over_time(duration)",
+          "legendFormat": "duration"
+        }
+      ]
+    },
+
+    {
+      "id": 7,
+      "title": "LocalAI Container Logs (filtered to inference activity)",
+      "type": "logs",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 25},
+      "description": "Live LocalAI container logs from Loki. Parsed with ANSI stripped, level and HTTP fields extracted.",
+      "datasource": {"uid": "loki"},
+      "targets": [
+        {
+          "datasource": {"uid": "loki"},
+          "expr": "{job=~\"docker/localai.*\", container=\"localai-api-1\"} |= `` | logfmt | line_format `{{.level}} {{.msg}} {{.method}} {{.path}} {{.status}}`",
+          "legendFormat": "{{host}}",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      }
+    },
+
+    {
+      "id": 8,
+      "title": "Tokens/Second Throughput by Host (from traces)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 33},
+      "description": "Average tokens-per-second from the most recent inference traces",
+      "datasource": {"uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | avg(span.localai.tokens_per_second)",
+          "legendFormat": "localai01 tok/s"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "query": "{ resource.service.name=\"localai-localai02\" } | avg(span.localai.tokens_per_second)",
+          "queryType": "traceql",
+          "legendFormat": "localai02 tok/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1,
+          "thresholds": {"steps": [{"color": "blue", "value": 0}]},
+          "displayName": "${__field.labels.service_name}"
+        }
+      },
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "horizontal", "textMode": "value_and_name"}
+    },
+
+    {
+      "id": 9,
+      "title": "Prompt vs Completion Token Ratio",
+      "type": "piechart",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 33},
+      "description": "Overall split of prompt vs completion tokens across all inferences (from Tempo trace attributes)",
+      "datasource": {"uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | sum(span.localai.tokens.prompt)",
+          "legendFormat": "Prompt Tokens"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | sum(span.localai.tokens.completion)",
+          "legendFormat": "Completion Tokens"
+        }
+      ]
+    },
+
+    {
+      "id": 10,
+      "title": "Inference Count by Model",
+      "type": "bargauge",
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 33},
+      "description": "Total inference count by model from Tempo traces",
+      "datasource": {"uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | count() by (span.localai.model)"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}}
+    }
+
+  ]
+}
