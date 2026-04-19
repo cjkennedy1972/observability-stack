@@ -6,26 +6,16 @@
   "refresh": "5s",
   "schemaVersion": 38,
   "time": {"from": "now-1h", "to": "now"},
-  "templating": {
-    "list": []
-  },
+  "templating": {"list": []},
   "panels": [
     {
       "id": 100,
       "title": "System Status",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_up{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "localai01 (AMD)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_up{instance=\"10.25.25.67:9835\"}",
-          "legendFormat": "localai02 (NVIDIA)"
-        }
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_up{instance=\"172.31.25.75:2021\"}", "legendFormat": "AMD (localai01)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_up{instance=\"10.25.25.67:9835\"}", "legendFormat": "NVIDIA (localai02)"}
       ],
       "fieldConfig": {
         "defaults": {
@@ -40,20 +30,12 @@
 
     {
       "id": 101,
-      "title": "GPU Utilization — Both Hosts",
+      "title": "GPU Utilization % (Real-Time)",
       "type": "gauge",
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_gpu_busy_percent{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "AMD GPU {{gpu_id}} %"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_utilization_gpu_ratio{instance=\"10.25.25.67:9835\"} * 100",
-          "legendFormat": "NVIDIA GPU {{gpu_index}} %"
-        }
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_gpu_busy_percent{instance=\"172.31.25.75:2021\", gpu_id=\"0\"}", "legendFormat": "AMD GPU0"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_utilization_gpu_ratio{instance=\"10.25.25.67:9835\"} * 100", "legendFormat": "NVIDIA GPU0"}
       ],
       "fieldConfig": {
         "defaults": {
@@ -64,80 +46,125 @@
           "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 60}, {"color": "red", "value": 90}]}
         }
       },
-      "options": {"orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true, "reduceOptions": {"calcs": ["lastNotNull"]}}
+      "options": {"orientation": "auto", "showThresholdLabels": true, "showThresholdMarkers": true, "reduceOptions": {"calcs": ["lastNotNull"]}}
     },
 
     {
       "id": 102,
-      "title": "Inference Request Rate (req/sec)",
-      "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "title": "GPU Temperature (°C)",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "sum(rate(api_call_count{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m]))",
-          "legendFormat": "Total req/sec"
-        }
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_temperature_edge_celsius{instance=\"172.31.25.75:2021\", gpu_id=\"0\"}", "legendFormat": "AMD Edge"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_temperature_gpu{instance=\"10.25.25.67:9835\"}", "legendFormat": "NVIDIA"}
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "color": {"mode": "palette-classic"},
-          "custom": {"hideFrom": {"tooltip": false, "viz": false, "legend": false}}
+          "unit": "celsius",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 75}, {"color": "red", "value": 85}]}
         }
       },
-      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "area", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      "options": {"orientation": "auto", "showThresholdLabels": true, "showThresholdMarkers": true, "reduceOptions": {"calcs": ["lastNotNull"]}}
     },
 
     {
       "id": 103,
-      "title": "Avg Latency (ms)",
-      "type": "stat",
-      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "title": "Power Draw (W)",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "avg(histogram_quantile(0.50, sum by (le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m]))))",
-          "legendFormat": "p50 latency"
-        }
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_power_watts{instance=\"172.31.25.75:2021\", gpu_id=\"0\"}", "legendFormat": "AMD"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_power_draw_watts{instance=\"10.25.25.67:9835\"}", "legendFormat": "NVIDIA"}
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "ms",
+          "unit": "watt",
           "color": {"mode": "palette-classic"}
         }
       },
-      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "none", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+      "options": {"orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": false, "reduceOptions": {"calcs": ["lastNotNull"]}}
     },
 
     {
-      "id": 200,
-      "title": "AMD GPU — Temperature & Clocks",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "id": 104,
+      "title": "Memory Utilization %",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_temperature_edge_celsius{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "Edge Temp {{gpu_id}}°C"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_temperature_junction_celsius{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "Junction Temp {{gpu_id}}°C"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_avg_gfxclk_mhz{instance=\"172.31.25.75:2021\"} / 1000",
-          "legendFormat": "GPU Clock {{gpu_id}} (GHz)"
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_memory_busy_percent{instance=\"172.31.25.75:2021\", gpu_id=\"0\"}", "legendFormat": "AMD"},
+        {"datasource": {"uid": "prometheus"}, "expr": "(nvidia_smi_memory_used_bytes / nvidia_smi_memory_total_bytes) * 100", "legendFormat": "NVIDIA"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}]}
         }
+      },
+      "options": {"orientation": "auto", "showThresholdLabels": true, "showThresholdMarkers": true, "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 105,
+      "title": "Inference Rate (req/sec)",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "sum(rate(api_call_count{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m]))"}
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {"orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 200,
+      "title": "AMD GPU — Temperatures",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_temperature_edge_celsius{instance=\"172.31.25.75:2021\"}", "legendFormat": "Edge {{gpu_id}}°C"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_temperature_junction_celsius{instance=\"172.31.25.75:2021\"}", "legendFormat": "Junction {{gpu_id}}°C"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_temperature_mem_celsius{instance=\"172.31.25.75:2021\"}", "legendFormat": "Memory {{gpu_id}}°C"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
           "custom": {"lineWidth": 2, "fillOpacity": 0},
           "color": {"mode": "palette-classic"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 80}, {"color": "red", "value": 95}]}
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 75}, {"color": "red", "value": 85}]}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 201,
+      "title": "AMD GPU — Power & Voltage",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_power_watts{instance=\"172.31.25.75:2021\"}", "legendFormat": "Power {{gpu_id}} (W)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_max_power_watts{instance=\"172.31.25.75:2021\"}", "legendFormat": "Max Power {{gpu_id}} (W)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_voltage_mv{instance=\"172.31.25.75:2021\"} / 1000", "legendFormat": "Voltage {{gpu_id}} (V)"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
         }
       },
       "options": {
@@ -147,31 +174,174 @@
     },
 
     {
-      "id": 201,
-      "title": "AMD GPU — Power & Memory",
+      "id": 202,
+      "title": "AMD GPU — Clocks & Activity",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_power_watts{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "Power {{gpu_id}} (W)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_memory_busy_percent{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "Memory Busy {{gpu_id}} (%)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "amd_smi_fan_speed_percent{instance=\"172.31.25.75:2021\"}",
-          "legendFormat": "Fan {{gpu_id}} (%)"
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_avg_gfxclk_mhz{instance=\"172.31.25.75:2021\"} / 1000", "legendFormat": "GPU Clock {{gpu_id}} (GHz)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_avg_uclk_mhz{instance=\"172.31.25.75:2021\"} / 1000", "legendFormat": "Memory Clock {{gpu_id}} (GHz)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_avg_gfx_activity_percent{instance=\"172.31.25.75:2021\"}", "legendFormat": "Activity {{gpu_id}} %"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 0},
+          "color": {"mode": "palette-classic"}
         }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 203,
+      "title": "AMD GPU — Memory & Fan",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_memory_busy_percent{instance=\"172.31.25.75:2021\"}", "legendFormat": "Memory Busy {{gpu_id}} %"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_fan_speed_percent{instance=\"172.31.25.75:2021\"}", "legendFormat": "Fan {{gpu_id}} %"},
+        {"datasource": {"uid": "prometheus"}, "expr": "amd_smi_fan_rpm{instance=\"172.31.25.75:2021\"}", "legendFormat": "Fan {{gpu_id}} RPM"}
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 204,
+      "title": "NVIDIA GPU — Temperatures",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_temperature_gpu{instance=\"10.25.25.67:9835\"}", "legendFormat": "GPU {{gpu_index}}°C"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "custom": {"lineWidth": 3, "fillOpacity": 0},
+          "color": {"mode": "palette-classic"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 75}, {"color": "red", "value": 85}]}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 205,
+      "title": "NVIDIA GPU — Power Draw vs Limit",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_power_draw_watts{instance=\"10.25.25.67:9835\"}", "legendFormat": "Draw {{gpu_index}} (W)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_power_limit_watts{instance=\"10.25.25.67:9835\"}", "legendFormat": "Limit {{gpu_index}} (W)"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 206,
+      "title": "NVIDIA GPU — Clocks",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_clock_graphics_mhz{instance=\"10.25.25.67:9835\"} / 1000", "legendFormat": "GPU Clock {{gpu_index}} (GHz)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_clock_memory_mhz{instance=\"10.25.25.67:9835\"} / 1000", "legendFormat": "Memory Clock {{gpu_index}} (GHz)"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 0},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 207,
+      "title": "NVIDIA GPU — Memory Usage",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_memory_used_bytes{instance=\"10.25.25.67:9835\"} / 1073741824", "legendFormat": "Used {{gpu_index}} (GB)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_memory_free_bytes{instance=\"10.25.25.67:9835\"} / 1073741824", "legendFormat": "Free {{gpu_index}} (GB)"},
+        {"datasource": {"uid": "prometheus"}, "expr": "(nvidia_smi_memory_used_bytes / nvidia_smi_memory_total_bytes) * 100", "legendFormat": "Used % {{gpu_index}}"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 208,
+      "title": "NVIDIA GPU — Utilization",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_utilization_gpu_ratio{instance=\"10.25.25.67:9835\"} * 100", "legendFormat": "GPU Util {{gpu_index}} %"},
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_utilization_memory_ratio{instance=\"10.25.25.67:9835\"} * 100", "legendFormat": "Mem Util {{gpu_index}} %"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 209,
+      "title": "NVIDIA GPU — Fan & Throttling",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+      "targets": [
+        {"datasource": {"uid": "prometheus"}, "expr": "nvidia_smi_fan_speed_percent{instance=\"10.25.25.67:9835\"}", "legendFormat": "Fan {{gpu_index}} %"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {"lineWidth": 3, "fillOpacity": 10},
           "color": {"mode": "palette-classic"}
         }
       },
@@ -183,91 +353,11 @@
 
     {
       "id": 300,
-      "title": "NVIDIA GPU — Temperature & Clocks",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
-      "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_temperature_gpu{instance=\"10.25.25.67:9835\"}",
-          "legendFormat": "GPU Temp {{gpu_index}}°C"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_clock_graphics_mhz{instance=\"10.25.25.67:9835\"} / 1000",
-          "legendFormat": "GPU Clock {{gpu_index}} (GHz)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_clock_memory_mhz{instance=\"10.25.25.67:9835\"} / 1000",
-          "legendFormat": "Mem Clock {{gpu_index}} (GHz)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {"lineWidth": 2, "fillOpacity": 0},
-          "color": {"mode": "palette-classic"},
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": 0}, {"color": "yellow", "value": 75}, {"color": "red", "value": 85}]}
-        }
-      },
-      "options": {
-        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
-        "tooltip": {"mode": "multi"}
-      }
-    },
-
-    {
-      "id": 301,
-      "title": "NVIDIA GPU — Power & Memory",
-      "type": "timeseries",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
-      "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_power_draw_watts{instance=\"10.25.25.67:9835\"}",
-          "legendFormat": "Power Draw {{gpu_index}} (W)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_power_limit_watts{instance=\"10.25.25.67:9835\"}",
-          "legendFormat": "Power Limit {{gpu_index}} (W)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_utilization_memory_ratio{instance=\"10.25.25.67:9835\"} * 100",
-          "legendFormat": "Memory Busy {{gpu_index}} (%)"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "nvidia_smi_fan_speed_percent{instance=\"10.25.25.67:9835\"}",
-          "legendFormat": "Fan {{gpu_index}} (%)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "custom": {"lineWidth": 2, "fillOpacity": 10},
-          "color": {"mode": "palette-classic"}
-        }
-      },
-      "options": {
-        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
-        "tooltip": {"mode": "multi"}
-      }
-    },
-
-    {
-      "id": 400,
       "title": "Inference Requests by Host",
       "type": "timeseries",
-      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 20},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 44},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "sum by (host) (rate(api_call_count{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m]))",
-          "legendFormat": "{{host}} req/sec"
-        }
+        {"datasource": {"uid": "prometheus"}, "expr": "sum by (host) (rate(api_call_count{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m]))", "legendFormat": "{{host}} req/sec"}
       ],
       "fieldConfig": {
         "defaults": {
@@ -277,32 +367,20 @@
         }
       },
       "options": {
-        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
         "tooltip": {"mode": "multi"}
       }
     },
 
     {
-      "id": 401,
+      "id": 301,
       "title": "Request Latency Percentiles",
       "type": "timeseries",
-      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 20},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 44},
       "targets": [
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "histogram_quantile(0.50, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m])))",
-          "legendFormat": "p50 {{host}}"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "histogram_quantile(0.95, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m])))",
-          "legendFormat": "p95 {{host}}"
-        },
-        {
-          "datasource": {"uid": "prometheus"},
-          "expr": "histogram_quantile(0.99, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m])))",
-          "legendFormat": "p99 {{host}}"
-        }
+        {"datasource": {"uid": "prometheus"}, "expr": "histogram_quantile(0.50, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m])))", "legendFormat": "p50 {{host}}"},
+        {"datasource": {"uid": "prometheus"}, "expr": "histogram_quantile(0.95, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m])))", "legendFormat": "p95 {{host}}"},
+        {"datasource": {"uid": "prometheus"}, "expr": "histogram_quantile(0.99, sum by (host, le) (rate(api_call_bucket{job=~\"localai.*\", path=\"/v1/chat/completions\"}[1m])))", "legendFormat": "p99 {{host}}"}
       ],
       "fieldConfig": {
         "defaults": {
@@ -312,97 +390,20 @@
         }
       },
       "options": {
-        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
         "tooltip": {"mode": "multi"}
       }
     },
 
     {
-      "id": 500,
+      "id": 400,
       "title": "Live Inference Traces (Click to Inspect)",
       "type": "traces",
-      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 27},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 51},
       "datasource": {"uid": "tempo"},
       "targets": [
-        {
-          "datasource": {"uid": "tempo"},
-          "queryType": "traceql",
-          "query": "{ resource.service.name=~\"localai-.*\" } | select(span.localai.model, span.localai.backend, span.localai.tokens.prompt, span.localai.tokens.completion, span.localai.tokens_per_second, span.localai.duration_ms) | sort(startTime desc)"
-        }
+        {"datasource": {"uid": "tempo"}, "queryType": "traceql", "query": "{ resource.service.name=~\"localai-.*\" } | select(span.localai.model, span.localai.backend, span.localai.tokens.prompt, span.localai.tokens.completion, span.localai.tokens_per_second, span.localai.duration_ms) | sort(startTime desc)"}
       ]
-    },
-
-    {
-      "id": 600,
-      "title": "Total Inferences by Host (Tempo)",
-      "type": "stat",
-      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 37},
-      "targets": [
-        {
-          "datasource": {"uid": "tempo"},
-          "queryType": "traceql",
-          "query": "{ resource.service.name=\"localai-localai01\" } | count()",
-          "legendFormat": "localai01"
-        },
-        {
-          "datasource": {"uid": "tempo"},
-          "queryType": "traceql",
-          "query": "{ resource.service.name=\"localai-localai02\" } | count()",
-          "legendFormat": "localai02"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {"mode": "palette-classic"},
-          "custom": {"hideFrom": {"tooltip": false, "viz": false, "legend": false}}
-        }
-      },
-      "options": {"orientation": "horizontal", "textMode": "auto", "colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
-    },
-
-    {
-      "id": 601,
-      "title": "Avg Tokens/Second (Actual Throughput)",
-      "type": "stat",
-      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 37},
-      "targets": [
-        {
-          "datasource": {"uid": "tempo"},
-          "queryType": "traceql",
-          "query": "{ resource.service.name=~\"localai-.*\" } | avg(span.localai.tokens_per_second)",
-          "legendFormat": "Avg tok/s"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {"mode": "palette-classic"}
-        }
-      },
-      "options": {"orientation": "vertical", "textMode": "auto", "colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
-    },
-
-    {
-      "id": 602,
-      "title": "Total Tokens Processed (Lifetime)",
-      "type": "stat",
-      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 37},
-      "targets": [
-        {
-          "datasource": {"uid": "tempo"},
-          "queryType": "traceql",
-          "query": "{ resource.service.name=~\"localai-.*\" } | sum(span.localai.tokens.total)",
-          "legendFormat": "Total tokens"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {"mode": "palette-classic"}
-        }
-      },
-      "options": {"orientation": "vertical", "textMode": "auto", "colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
     }
   ]
 }
