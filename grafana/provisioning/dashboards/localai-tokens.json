@@ -1,0 +1,442 @@
+{
+  "title": "LocalAI — Token Throughput & Processing",
+  "uid": "localai-tokens",
+  "tags": ["localai", "tokens", "throughput", "performance"],
+  "timezone": "browser",
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "time": {"from": "now-1h", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {
+      "id": 1,
+      "title": "Tokens/Second (Total) — Live",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | avg(span.localai.tokens_per_second)",
+          "legendFormat": "Avg tok/s (all)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"},
+          "custom": {"hideFrom": {"tooltip": false, "viz": false, "legend": false}}
+        }
+      },
+      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "area", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 2,
+      "title": "Tokens/Second — AMD (localai01)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | avg(span.localai.tokens_per_second)",
+          "legendFormat": "AMD tok/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "area", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 3,
+      "title": "Tokens/Second — NVIDIA (localai02)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | avg(span.localai.tokens_per_second)",
+          "legendFormat": "NVIDIA tok/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "area", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 10,
+      "title": "Prompt Tokens Processed (Lifetime)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 4},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | sum(span.localai.tokens.prompt)",
+          "legendFormat": "Total prompt"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "none", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 11,
+      "title": "Completion Tokens Processed (Lifetime)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 4},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | sum(span.localai.tokens.completion)",
+          "legendFormat": "Total completion"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "none", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 12,
+      "title": "Total Tokens Processed",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 4},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | sum(span.localai.tokens.total)",
+          "legendFormat": "Total tokens"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {"textMode": "auto", "colorMode": "value", "graphMode": "none", "orientation": "vertical", "reduceOptions": {"calcs": ["lastNotNull"]}}
+    },
+
+    {
+      "id": 20,
+      "title": "Tokens/Second Over Time — By Host",
+      "type": "timeseries",
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 8},
+      "description": "Real-time token generation rate (completion tokens per second)",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | avg(span.localai.tokens_per_second)",
+          "legendFormat": "AMD (localai01)"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | avg(span.localai.tokens_per_second)",
+          "legendFormat": "NVIDIA (localai02)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 3, "fillOpacity": 20},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 21,
+      "title": "Prompt Tokens/Request — By Host",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 17},
+      "description": "Average number of prompt tokens per inference request",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | avg(span.localai.tokens.prompt)",
+          "legendFormat": "AMD (localai01)"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | avg(span.localai.tokens.prompt)",
+          "legendFormat": "NVIDIA (localai02)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 22,
+      "title": "Completion Tokens/Request — By Host",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 17},
+      "description": "Average number of completion (generated) tokens per inference request",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | avg(span.localai.tokens.completion)",
+          "legendFormat": "AMD (localai01)"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | avg(span.localai.tokens.completion)",
+          "legendFormat": "NVIDIA (localai02)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max", "last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 23,
+      "title": "Inferences/Hour — By Host",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 25},
+      "description": "Number of inference requests processed per hour",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | count()",
+          "legendFormat": "AMD (localai01)"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | count()",
+          "legendFormat": "NVIDIA (localai02)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["sum", "last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 24,
+      "title": "Prompt vs Completion Token Ratio",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 25},
+      "description": "Ratio of prompt to completion tokens (input vs output)",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | sum(span.localai.tokens.prompt) / sum(span.localai.tokens.completion)",
+          "legendFormat": "AMD Ratio"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | sum(span.localai.tokens.prompt) / sum(span.localai.tokens.completion)",
+          "legendFormat": "NVIDIA Ratio"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 0},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 30,
+      "title": "Token Distribution — AMD (localai01)",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 33},
+      "description": "Split of prompt vs completion tokens on AMD host",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | sum(span.localai.tokens.prompt)",
+          "legendFormat": "Prompt Tokens"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | sum(span.localai.tokens.completion)",
+          "legendFormat": "Completion Tokens"
+        }
+      ],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      }
+    },
+
+    {
+      "id": 31,
+      "title": "Token Distribution — NVIDIA (localai02)",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 33},
+      "description": "Split of prompt vs completion tokens on NVIDIA host",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | sum(span.localai.tokens.prompt)",
+          "legendFormat": "Prompt Tokens"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | sum(span.localai.tokens.completion)",
+          "legendFormat": "Completion Tokens"
+        }
+      ],
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "tooltip": {"mode": "single"}
+      }
+    },
+
+    {
+      "id": 40,
+      "title": "Inference Duration (ms) — By Host",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 41},
+      "description": "Average time to complete inference request (end-to-end latency)",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | avg(span.localai.duration_ms)",
+          "legendFormat": "AMD (localai01)"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | avg(span.localai.duration_ms)",
+          "legendFormat": "NVIDIA (localai02)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["mean", "max"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 41,
+      "title": "Inference Efficiency — Tokens/Second/GPU",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 41},
+      "description": "Token generation efficiency (tokens/second per GPU)",
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai01\" } | max(span.localai.tokens_per_second)",
+          "legendFormat": "AMD Peak (localai01)"
+        },
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=\"localai-localai02\" } | max(span.localai.tokens_per_second)",
+          "legendFormat": "NVIDIA Peak (localai02)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {"lineWidth": 2, "fillOpacity": 10},
+          "color": {"mode": "palette-classic"}
+        }
+      },
+      "options": {
+        "legend": {"showLegend": true, "placement": "bottom", "calcs": ["last"]},
+        "tooltip": {"mode": "multi"}
+      }
+    },
+
+    {
+      "id": 50,
+      "title": "Recent Inferences — Detailed Token Metrics",
+      "type": "traces",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 49},
+      "datasource": {"uid": "tempo"},
+      "targets": [
+        {
+          "datasource": {"uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name=~\"localai-.*\" } | select(span.localai.model, span.localai.backend, span.localai.tokens.prompt, span.localai.tokens.completion, span.localai.tokens.total, span.localai.tokens_per_second, span.localai.duration_ms) | sort(startTime desc)"
+        }
+      ]
+    }
+  ]
+}
